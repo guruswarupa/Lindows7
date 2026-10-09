@@ -1,0 +1,111 @@
+name: Build ISO
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish the ISO to a GitHub release"
+        type: boolean
+        default: false
+      tag:
+        description: "Release tag (required when publishing manually)"
+        type: string
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    container:
+      image: archlinux:latest
+      # mkarchiso needs loop mounts, chroot and mknod
+      options: --privileged
+    steps:
+      - name: Install build tools
+        run: |
+          pacman-key --init
+          pacman-key --populate archlinux
+          pacman -Syu --noconfirm --needed archiso git base-devel squashfs-tools
+
+      - uses: actions/checkout@v4
+
+      - name: Fetch prebuilt AUR packages (localrepo)
+        # localrepo/ is gitignored (several GB). Its packages live as assets on
+        # the "localrepo" release; see scripts/upload-localrepo.sh.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pacman -S --noconfirm --needed github-cli
+          mkdir -p localrepo
+          gh release download localrepo --repo "$GITHUB_REPOSITORY" \
+            --pattern '*.pkg.tar.zst' --dir localrepo
+          rm -f localrepo/*-debug-*.pkg.tar.zst
+          repo-add localrepo/lindows7.db.tar.gz localrepo/*.pkg.tar.zst
+          ln -sf lindows7.db.tar.gz localrepo/lindows7.db
+
+      - name: Point profile at the checkout
+        # profiledef.sh and pacman.conf hardcode the maintainer's home directory
+        run: |
+          sed -i "s|/home/guru/Projects/Lindows7|$GITHUB_WORKSPACE|g" \
+            profile/profiledef.sh profile/pacman.conf
+
+      - name: Build ISO
+        run: mkarchiso -v -w /tmp/archiso-work -o out profile/
+
+      - name: Checksum and split for release limits
+        working-directory: out
+        run: |
+          iso=$(ls *.iso)
+          sha256sum "$iso" > "$iso.sha256"
+          # GitHub release assets are capped at 2 GiB
+          if [ "$(stat -c %s "$iso")" -gt 2000000000 ]; then
+            split -b 1900M -d "$iso" "$iso.part"
+            rm "$iso"
+            echo "ISO exceeds 2 GiB; rejoin with: cat ${iso}.part* > $iso" > README-split.txt
+          fi
+          ls -lh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lindows7-iso
+          path: out/*
+          compression-level: 0
+          retention-days: 7
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          name: Lindows7 ${{ inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: out/*
+
+      - name: Upload to SourceForge
+        # Runs only for releases, and only when the SF_SSH_KEY secret is set.
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release)
+        env:
+          SF_SSH_KEY: ${{ secrets.SF_SSH_KEY }}
+          SF_USER: ${{ vars.SF_USER || 'guruswarupa' }}
+          SF_PROJECT: ${{ vars.SF_PROJECT || 'lindows7' }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if [ -z "$SF_SSH_KEY" ]; then
+            echo "SF_SSH_KEY not set, skipping SourceForge upload"
+            exit 0
+          fi
+          pacman -S --noconfirm --needed openssh rsync
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SF_SSH_KEY" > ~/.ssh/id_sf
+          chmod 600 ~/.ssh/id_sf
+          ssh-keyscan frs.sourceforge.net >> ~/.ssh/known_hosts
+          # SourceForge rejects rsync into a missing dir, so make it via sftp first
+          printf 'mkdir /home/frs/project/%s/%s\n' "$SF_PROJECT" "$TAG" | \
+            sftp -i ~/.ssh/id_sf -b - "$SF_USER@frs.sourceforge.net" || true
+          rsync -av -e "ssh -i ~/.ssh/id_sf" out/ \
+            "$SF_USER@frs.sourceforge.net:/home/frs/project/$SF_PROJECT/$TAG/"

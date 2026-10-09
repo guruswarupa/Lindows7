@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Lindows7 Installer Launcher
+Exec=/usr/local/bin/calamares-launch
+NoDisplay=true
+X-KDE-autostart-phase=1

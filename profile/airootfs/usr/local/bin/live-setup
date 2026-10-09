@@ -1,0 +1,43 @@
+#!/bin/bash
+# Live medium setup script for Lindows7
+
+# Check if running in live mode
+if [ ! -d /run/archiso ]; then
+    echo "Not running in live mode, exiting."
+    exit 0
+fi
+
+# Create live user
+if ! id -u lindows7 >/dev/null 2>&1; then
+    echo "Creating live user lindows7..."
+    useradd -m -G wheel,lp,video,network,storage,audio,optical,floppy,uucp,scanner,games -s /bin/bash lindows7
+    echo "lindows7:lindows7" | chpasswd
+    echo "lindows7 ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/lindows7
+fi
+
+# Set hostname
+echo "lindows7-live" > /etc/hostname
+
+# Enable services
+systemctl enable NetworkManager
+systemctl enable sddm
+
+# Check if calamares should be started
+if grep -q "desktop=calamares" /proc/cmdline; then
+    echo "Starting Calamares installer..."
+    # Create autostart for calamares
+    mkdir -p /home/lindows7/.config/autostart
+    cat > /home/lindows7/.config/autostart/calamares.desktop <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Calamares Installer
+Exec=calamares
+Icon=calamares
+Terminal=false
+Categories=System;
+EOF
+    chown -R lindows7:lindows7 /home/lindows7/.config
+fi
+
+echo "Live medium setup complete."

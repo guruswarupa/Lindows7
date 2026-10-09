@@ -1,0 +1,4 @@
+/out
+/work
+# Local pacman repo with prebuilt AUR packages (too large for git; see CI workflow)
+/localrepo

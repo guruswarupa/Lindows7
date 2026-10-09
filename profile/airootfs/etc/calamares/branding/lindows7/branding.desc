@@ -1,0 +1,53 @@
+---
+# Calamares branding configuration for Lindows7
+#
+# NOTE: this Calamares build does not support an "inherit:" key -- there
+# is no such feature in Branding.cpp, so nothing from the default
+# branding.desc gets pulled in automatically. Everything Calamares
+# needs must be defined directly in this file.
+
+componentName: lindows7
+
+# Product information
+strings:
+    productName:         Lindows7
+    shortProductName:    Lindows7
+    version:              1.0
+    shortVersion:         "1.0"
+    versionedName:        Lindows7 1.0
+    shortVersionedName:   Lindows7 1.0
+    bootloaderEntryName:  Lindows7
+    supportUrl:           https://github.com/lindows7/lindows7
+    knownIssuesUrl:       https://github.com/lindows7/lindows7/issues
+    releaseNotesUrl:      https://github.com/lindows7/lindows7/releases
+
+# Welcome message
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+
+# Images loaded from this branding directory.
+# Only files that actually exist here are listed; add productIcon /
+# productLogo / productWelcome entries once those images are created.
+images:
+    productWallpaper: "wallpaper.jpg"
+
+# Colors for text and background components (sidebar).
+style:
+    SidebarBackground:        "#292F34"
+    SidebarText:              "#FFFFFF"
+    SidebarTextCurrent:       "#292F34"
+    SidebarBackgroundCurrent: "#D35400"
+
+# Slideshow (none configured yet)
+slideshow: []
+
+# Disable pastebin log uploading
+uploadServer:
+    type: "none"
+    url: ""
+    sizeLimit: -1
+
+# UI customization
+windowExpanding: normal
+windowSize: 800px,600px
+windowPlacement: center

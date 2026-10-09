@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Install Lindows7
+Comment=Install Lindows7 to your computer
+Exec=pkexec calamares
+Icon=calamares
+Terminal=false
+Categories=System;

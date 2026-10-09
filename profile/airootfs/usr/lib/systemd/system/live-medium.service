@@ -1,0 +1,13 @@
+[Unit]
+Description=Lindows7 Live Medium Setup
+Before=display-manager.service
+ConditionPathExists=/etc/hostname
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/live-setup
+ExecStartPost=/usr/local/bin/live-session-start
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

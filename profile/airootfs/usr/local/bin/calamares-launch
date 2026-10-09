@@ -1,0 +1,6 @@
+#!/bin/bash
+# Launch the Calamares installer automatically in the live session only.
+[ -d /run/archiso ] || exit 0
+# Give plasmashell a moment to come up so the window shows on the Aero desktop.
+sleep 5
+exec pkexec calamares

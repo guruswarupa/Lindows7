@@ -1,0 +1,30 @@
+#!/bin/bash
+# Live session start script for Lindows7
+
+# Check if running in live mode
+if [ ! -d /run/archiso ]; then
+    exit 0
+fi
+
+# Create desktop entry for installer
+if [ -d /home/lindows7/Desktop ]; then
+    cat > /home/lindows7/Desktop/install-lindows7.desktop <<EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install Lindows7
+Comment=Install Lindows7 to your system
+Exec=calamares
+Icon=calamares
+Terminal=false
+Categories=System;
+EOF
+    chown lindows7:lindows7 /home/lindows7/Desktop/install-lindows7.desktop
+    chmod +x /home/lindows7/Desktop/install-lindows7.desktop
+fi
+
+# Check if calamares should be started automatically
+if grep -q "desktop=calamares" /proc/cmdline; then
+    # Start calamares after desktop session starts
+    (sleep 10 && sudo -u lindows7 calamares) &
+fi
