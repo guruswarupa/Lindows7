@@ -30,7 +30,7 @@ jobs:
         run: |
           pacman-key --init
           pacman-key --populate archlinux
-          pacman -Syu --noconfirm --needed archiso git base-devel squashfs-tools
+          pacman -Syu --noconfirm --needed archiso git base-devel squashfs-tools grub syslinux mtools dosfstools libisoburn
 
       - uses: actions/checkout@v4
 
